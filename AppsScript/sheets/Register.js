@@ -192,6 +192,8 @@ function updatePendingRegisterEntry(registerRowData) {
     registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DATE, 1, 1).setValue(targetDueDate);
   }
 
+  sortRegisterSheet();
+
   SpreadsheetApp.flush();
   console.log(`${getFuncName()} complete.`);
 }
