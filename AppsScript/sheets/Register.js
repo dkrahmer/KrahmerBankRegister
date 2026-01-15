@@ -117,8 +117,8 @@ function updatePendingRegisterEntry(registerRowData) {
     if (rowPayee !== targetPayee)
       continue;
 
-    // If dueDate provided, check within the tolerance window
-    if (targetDueDate && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
+    // If dueDate provided and not 'add' mode, check within the tolerance window
+    if (targetDueDate && mode !== 'add' && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
       continue;
 
     // Track the one with earliest date
@@ -142,17 +142,16 @@ function updatePendingRegisterEntry(registerRowData) {
     mode = mode ?? 'replace'; // Default to 'replace' if not provided
 
     if (mode === 'replace') {
-      withdrawal = amount;
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setValue(amount);
     }
     else if (mode === 'add') {
-      withdrawal = `=${withdrawal}+(${amount})`;
+      // Set as a formula so it's viewable/editable
+      const operator = amount >= 0 ? '+' : '';
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setFormula(`=${withdrawal}${operator}${amount}`);
     }
     else {
       throw new Error('Invalid mode: must be "replace" or "add"');
     }
-
-    // Update the register with the withdrawal
-	registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setValue(withdrawal);
 
     // If informationOnlyEntry flag is set, also set deposit to the same amount
     if (informationOnlyEntry) {
@@ -192,8 +191,8 @@ function updatePendingRegisterEntry(registerRowData) {
     registerSheet.getRange(candidateIndex + 1, REGISTER_COL_NOTES, 1, 1).setValue(notes);
   }
 
-  // Overwrite date if provided
-  if (targetDueDate) {
+  // Overwrite date if provided (not for 'add' mode)
+  if (targetDueDate && mode !== 'add') {
     registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DATE, 1, 1).setValue(targetDueDate);
   }
 
