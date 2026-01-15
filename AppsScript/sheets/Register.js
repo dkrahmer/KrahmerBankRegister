@@ -90,7 +90,7 @@ function updatePendingRegisterEntry(registerRowData) {
   threshold.setHours(0, 0, 0, 0);
 
   let targetDueDate = null;
-  const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+  const dueDateToleranceMs = 14 * 24 * 60 * 60 * 1000; // Tolerance window for due date matching (currently 14 days)
   if (dueDate) {
     targetDueDate = new Date(dueDate);
     targetDueDate.setHours(0, 0, 0, 0);
@@ -117,8 +117,8 @@ function updatePendingRegisterEntry(registerRowData) {
     if (rowPayee !== targetPayee)
       continue;
 
-    // If dueDate provided, check within 2 weeks
-    if (targetDueDate && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > twoWeeksMs)
+    // If dueDate provided, check within the tolerance window
+    if (targetDueDate && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
       continue;
 
     // Track the one with earliest date
