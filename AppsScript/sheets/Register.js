@@ -79,7 +79,7 @@ function addRegisterRows(rowsToAdd, rowToAddBefore) {
 
 function updatePendingRegisterEntry(registerRowData) {
   console.log(`${getFuncName()}...`);
-  let { maxDate, payee, amount, mode, dueDate, status, appendNote } = registerRowData;
+  let { maxDate, payee, amount, mode, dueDate, status, appendNote, informationOnlyEntry } = registerRowData;
   const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
   const registerSheet = sheet.getSheetByName(REGISTER_SHEET_NAME);
 
@@ -153,6 +153,11 @@ function updatePendingRegisterEntry(registerRowData) {
 
     // Update the register with the withdrawal
 	registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setValue(withdrawal);
+
+    // If informationOnlyEntry flag is set, also set deposit to the same amount
+    if (informationOnlyEntry) {
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DEPOSIT, 1, 1).setValue(amount);
+    }
   }
 
   // Set status if provided

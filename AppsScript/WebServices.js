@@ -170,7 +170,8 @@ Tasks:
 2. Extract the total amount due as a number (e.g., 123.45 or -50.00 for credits like cash back). Do not use the minimum amount due unless there is no other amount or it is the same amount as the amount due. If no amount found, set to 0.
 3. Decide the mode: "replace" if the email indicates a regular bill or invoice, or "add" if it is a cash back reward (make the number negative for cash back reward). Base this on the email content and any rules.
 4. Extract the due date - it may be called the minimum payment due date.
-5. Provide a brief reason for your decisions.
+5. CRITICAL: Check the matched payee's rules above. If the rules contain ANY of these phrases: "Enable the information-only flag", "information-only", "info-only flag", then set informationOnlyEntry to TRUE. Otherwise, set it to FALSE. This is a rule-based setting, not an inference from the email content.
+6. Provide a brief reason for your decisions.
 
 Respond ONLY with a valid JSON object, no other text or explanations:
 {
@@ -178,6 +179,7 @@ Respond ONLY with a valid JSON object, no other text or explanations:
   "amount": number,
   "mode": "replace" or "add",
   "dueDate": date (MM/DD/YYYY),
+  "informationOnlyEntry": boolean,
   "reason": "brief string"
 }
 
@@ -275,7 +277,8 @@ ${emailText}
       mode: result.mode,
       dueDate: result.dueDate,
       status: "",
-      appendNote: "email auto AI"
+      appendNote: "email auto AI",
+      informationOnlyEntry: result.informationOnlyEntry || false
     });
 
     writeLog("INFO", "processEmailBill completed successfully", result);
