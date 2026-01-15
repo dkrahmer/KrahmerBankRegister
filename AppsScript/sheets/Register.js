@@ -117,8 +117,8 @@ function updatePendingRegisterEntry(registerRowData) {
     if (rowPayee !== targetPayee)
       continue;
 
-    // If dueDate provided and not 'add' mode, check within the tolerance window
-    if (targetDueDate && mode !== 'add' && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
+    // If dueDate provided and not 'subtract' mode, check within the tolerance window
+    if (targetDueDate && mode !== 'subtract' && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
       continue;
 
     // Track the one with earliest date
@@ -144,13 +144,12 @@ function updatePendingRegisterEntry(registerRowData) {
     if (mode === 'replace') {
       registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setValue(amount);
     }
-    else if (mode === 'add') {
-      // Set as a formula so it's viewable/editable
-      const operator = amount >= 0 ? '+' : '';
-      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setFormula(`=${withdrawal}${operator}${amount}`);
+    else if (mode === 'subtract') {
+      // Set as a formula so it's viewable/editable (always subtract positive amount)
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setFormula(`=${withdrawal}-${Math.abs(amount)}`);
     }
     else {
-      throw new Error('Invalid mode: must be "replace" or "add"');
+      throw new Error('Invalid mode: must be "replace" or "subtract"');
     }
 
     // If informationOnlyEntry flag is set, also set deposit to the same amount
@@ -191,8 +190,8 @@ function updatePendingRegisterEntry(registerRowData) {
     registerSheet.getRange(candidateIndex + 1, REGISTER_COL_NOTES, 1, 1).setValue(notes);
   }
 
-  // Overwrite date if provided (not for 'add' mode)
-  if (targetDueDate && mode !== 'add') {
+  // Overwrite date if provided (not for 'subtract' mode)
+  if (targetDueDate && mode !== 'subtract') {
     registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DATE, 1, 1).setValue(targetDueDate);
   }
 
