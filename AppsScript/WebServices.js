@@ -152,8 +152,17 @@ function processEmailBill(data) {
 
     writeLog("DEBUG", "Payees loaded", {count: payees.length});
 
-    // Format payees and rules for the prompt
+    // Filter for valid payees
     let validPayees = payees.filter(p => (p.emailAiRules?.trim().length ?? 0) > 0);
+    
+    // Extract and remove special "---" payee for common instructions
+    let specialPayeeIndex = validPayees.findIndex(p => p.payee === '---');
+    let specialInstructions = null;
+    if (specialPayeeIndex >= 0) {
+      specialInstructions = validPayees[specialPayeeIndex].emailAiRules?.trim() ?? '';
+      validPayees.splice(specialPayeeIndex, 1);
+    }
+    
     let payeeNames = validPayees.map(p => `"${p.payee}"`).join(', ');
     let payeesListText = validPayees
       .map(p => `- Payee: ${p.payee}\n  Rules: ${p.emailAiRules}`)
@@ -165,7 +174,10 @@ function processEmailBill(data) {
 === MATCHING PROCESS ===
 For each payee below, check if the email matches ALL criteria in their rules. The payee with the BEST match wins.
 
-=== PAYEE DATABASE ===
+${specialInstructions ? `=== COMMON INSTRUCTIONS (APPLY TO ALL PAYEES) ===
+${specialInstructions}
+
+` : ''}=== PAYEE DATABASE ===
 ${payeesListText}
 
 === INSTRUCTIONS ===
@@ -178,13 +190,13 @@ ${payeesListText}
 
 2. AMOUNT EXTRACTION:
    - Extract the total amount due as a number (e.g., 123.45)
-   - For cash back/credits, use negative numbers (e.g., -50.00)
+   - For cash back and credits (a credit is like a cash back), use negative numbers (e.g., -50.00)
    - Do NOT use minimum payment unless it equals the total amount
    - If no amount found, use 0
 
 3. MODE SELECTION:
-   - Use "replace" for regular bills/invoices
-   - Use "add" for cash back/rewards/credits
+   - Use "replace" for regular bills and invoices
+   - Use "add" for cash back, rewards, and credits
 
 4. DUE DATE:
    - Extract the payment due date (may be called "minimum payment due date")
