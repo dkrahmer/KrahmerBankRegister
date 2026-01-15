@@ -1,15 +1,15 @@
 /************************************************************************************************************
 Krahmer Bank Register
-Copyright 2022 Douglas Krahmer
+Copyright 2026 Douglas Krahmer
 
 This file is part of Krahmer Bank Register.
 
-Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the 
-GNU General Public License as published by the Free Software Foundation, either version 3 of the License, 
+Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
 or (at your option) any later version.
 
-Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with Krahmer Bank Register.
@@ -17,9 +17,10 @@ If not, see <https://www.gnu.org/licenses/>.
 ************************************************************************************************************/
 
 /*************************************************************************************
-Version: 3.0.0
+Version: 4.0.0
 Release Date: 2022-03-31 (first release date: 2017-08-26)
 Release notes:
+  2026-01-14 (4.0.0)  - Add AI email bill handling
   2022-09-24 (3.0.0)  - Change to decending date transaction sort order
                         Add auto-archiving
                         Code reorg
@@ -44,9 +45,9 @@ const ESTIMATE_STATUS = "E"; // must match sheet data validation for the status 
 const REGISTER_SHEET_NAME = "Register";
 const RECURRING_SHEET_NAME = "Recurring";
 const ARCHIVE_SHEET_NAME = "Archive";
-const PAYEE_CATEGORIES_SHEET_NAME = "Payee Categories";
+const PAYEES_SHEET_NAME = "Payees";
 
-//const WEB_SERVICE_PASSPHRASE = "fill in password"; // for future use (not currently used)
+const WEB_SERVICE_PASSPHRASE = PropertiesService.getScriptProperties().getProperty('WEB_SERVICE_PASSPHRASE') || '';
 // ------------------ End Settings ------------------
 
 const WAIT_LOCK_TIMEOUT = 10000;
@@ -81,13 +82,18 @@ const RECURRING_COL_NOTES = ++RECURRING_COL_COUNT;
 const RECURRING_COL_STATUS = ++RECURRING_COL_COUNT;
 const RECURRING_COL_NOTES_PRIVATE = ++RECURRING_COL_COUNT;
 
+let PAYEES_COL_COUNT = 0;
+const PAYEES_COL_PAYEE = ++PAYEES_COL_COUNT;
+const PAYEES_COL_CATEGORY = ++PAYEES_COL_COUNT;
+const PAYEES_COL_EMAIL_AI_RULES = ++PAYEES_COL_COUNT;
+
 function initialize() {
   console.log(`${getFuncName()}...`);
   saveSheetKey();
   deleteRegister();
   deleteArchive();
   deleteRecurring();
-  deletePayeeCategories();
+  deletePayees();
   createTriggers();
 }
 
@@ -103,7 +109,7 @@ function createTriggers() {
   let scriptName;
 
   const triggerFunctionNames = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
-  
+
   scriptName = "onEditCustom";
   if (!triggerFunctionNames.includes(scriptName)) {
     ScriptApp.newTrigger(scriptName)
@@ -133,8 +139,8 @@ function deleteRegister() {
   console.log(`${getFuncName()}...`);
   const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
   const registerSheet = sheet.getSheetByName(REGISTER_SHEET_NAME);
- 
-  const headerRows = registerSheet.getFrozenRows(); 
+
+  const headerRows = registerSheet.getFrozenRows();
   registerSheet.deleteRows(headerRows + 1, registerSheet.getMaxRows() - headerRows - REGISTER_FOOTER_ROW_COUNT);
   validateRegisterSheet();
 }
@@ -143,8 +149,8 @@ function deleteArchive() {
   console.log(`${getFuncName()}...`);
   const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
   const archiveSheet = sheet.getSheetByName(ARCHIVE_SHEET_NAME);
- 
-  const headerRows = archiveSheet.getFrozenRows(); 
+
+  const headerRows = archiveSheet.getFrozenRows();
   archiveSheet.deleteRows(headerRows + 1, archiveSheet.getMaxRows() - headerRows - ARCHIVE_FOOTER_ROW_COUNT);
 }
 
@@ -152,18 +158,18 @@ function deleteRecurring() {
   console.log(`${getFuncName()}...`);
   const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
   const recurringSheet = sheet.getSheetByName(RECURRING_SHEET_NAME);
- 
-  const headerRows = recurringSheet.getFrozenRows(); 
+
+  const headerRows = recurringSheet.getFrozenRows();
   const range = recurringSheet.getRange(headerRows + 1, 1, recurringSheet.getMaxRows() - headerRows, recurringSheet.getMaxColumns());
   range.clearContent();
 }
 
-function deletePayeeCategories() {
+function deletePayees() {
   console.log(`${getFuncName()}...`);
   const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
-  const payeeCategoriesSheet = sheet.getSheetByName(PAYEE_CATEGORIES_SHEET_NAME);
- 
-  const headerRows = payeeCategoriesSheet.getFrozenRows(); 
-  const range = payeeCategoriesSheet.getRange(headerRows + 1, 1, payeeCategoriesSheet.getMaxRows() - headerRows, payeeCategoriesSheet.getMaxColumns());
+  const payeesSheet = sheet.getSheetByName(PAYEES_SHEET_NAME);
+
+  const headerRows = payeesSheet.getFrozenRows();
+  const range = payeesSheet.getRange(headerRows + 1, 1, payeesSheet.getMaxRows() - headerRows, payeesSheet.getMaxColumns());
   range.clearContent();
 }

@@ -16,43 +16,34 @@ You should have received a copy of the GNU General Public License along with Kra
 If not, see <https://www.gnu.org/licenses/>.
 ************************************************************************************************************/
 
-function onEditCustom(e) {
-  console.log(`${getFuncName()}...`);
-  const lock = LockService.getScriptLock();
-
+/**
+ * Write a log entry to the Log sheet
+ * @param {string} level - Log level (INFO, ERROR, DEBUG)
+ * @param {string} message - Log message
+ * @param {Object} data - Optional data object to log
+ */
+function writeLog(level, message, data = null) {
   try {
-    lock.waitLock(WAIT_LOCK_TIMEOUT);
-  }
-  catch (ex) {
-    console.error(ex);
-    return;
-  }
+    const ss = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
+    const logSheet = ss.getSheetByName("Log");
 
-  try {
-    const sourceSheetName = e.source.getSheetName();
-
-    if (sourceSheetName == REGISTER_SHEET_NAME) {
-      handleRegisterSheetEdit(e);
+    if (!logSheet) {
+      // If Log sheet doesn't exist, silently fail
+      return;
     }
-    else if (sourceSheetName == RECURRING_SHEET_NAME) {
-      handleRecurringSheetEdit(e);
+
+    const timestamp = new Date();
+    const dataStr = data ? JSON.stringify(data) : "";
+
+    logSheet.appendRow([timestamp, level, message, dataStr]);
+
+    // Keep only last 1000 entries
+    const maxRows = 1000;
+    if (logSheet.getLastRow() > maxRows + 1) { // +1 for header
+      logSheet.deleteRows(2, logSheet.getLastRow() - maxRows - 1);
     }
   }
-  finally {
-      SpreadsheetApp.flush();
-      lock.releaseLock();
+  catch (err) {
+    // Silently fail if logging fails - don't break the main function
   }
-}
-
-function onOpen() {
-  console.log(`${getFuncName()}...`);
-  const sheet = SpreadsheetApp.getActiveSpreadsheet();
-
-  let entries = [
-    {name:"Archive Now", functionName:"autoArchive"},
-    {name:"Process Recurring", functionName:"processRecurring"},
-    {name:"Sort Register", functionName:"sortRegisterSheet"},
-    {name:"Sort Archive", functionName:"sortArchiveSheet"}
-  ];
-  sheet.addMenu("Bank Register Actions", entries);
 }

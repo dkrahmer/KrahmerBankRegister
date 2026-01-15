@@ -1,15 +1,15 @@
 /************************************************************************************************************
 Krahmer Bank Register
-Copyright 2022 Douglas Krahmer
+Copyright 2026 Douglas Krahmer
 
 This file is part of Krahmer Bank Register.
 
-Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the 
-GNU General Public License as published by the Free Software Foundation, either version 3 of the License, 
+Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
 or (at your option) any later version.
 
-Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with Krahmer Bank Register.
@@ -38,24 +38,25 @@ function handleRecurringSheetEdit(e) {
       const changedRow = changedRowRange.getValues()[0];
       const newPayee = changedRow[0];
       const newCategory = changedRow[1];
-      const payeeCategoriesSheet = sheet.getSheetByName(PAYEE_CATEGORIES_SHEET_NAME);
-      const payeeCategoriesRows = payeeCategoriesSheet.getDataRange().getValues();
+      const payeesSheet = sheet.getSheetByName(PAYEES_SHEET_NAME);
+      const payeesRows = payeesSheet.getDataRange().getValues();
       let foundPayee = false;
 
-      if (!!newPayee && e.range.getColumn() == RECURRING_COL_PAYEE) {
+      if (!!newPayee && e.range.getColumn() === RECURRING_COL_PAYEE) {
         // the payee was set and the category is empty. Try to fill in the category...
         for (
-          updateRowNumber = 1;
-          updateRowNumber < payeeCategoriesRows.length;
+          let updateRowNumber = 1;
+          updateRowNumber < payeesRows.length;
           updateRowNumber++
         ) {
-          const payeeCategoriesRow = payeeCategoriesRows[updateRowNumber];
-          payee = payeeCategoriesRow[0];
-          if (!payee) break;
+          const payeesRow = payeesRows[updateRowNumber];
+          let payee = payeesRow[0];
+          if (!payee)
+            break;
 
-          if (payee == newPayee) {
+          if (payee === newPayee) {
             foundPayee = true;
-            category = payeeCategoriesRow[1];
+            let category = payeesRow[1];
             // Set the category to the recurring sheet
             recurringSheet.getRange(e.range.getRow(), RECURRING_COL_CATEGORY).setValue(category);
             break;
@@ -70,28 +71,29 @@ function handleRecurringSheetEdit(e) {
 
         for (
           updateRowNumber = 1;
-          updateRowNumber < payeeCategoriesRows.length;
+          updateRowNumber < payeesRows.length;
           updateRowNumber++
         ) {
-          const payeeCategoriesRow = payeeCategoriesRows[updateRowNumber];
-          payee = payeeCategoriesRow[0];
-          category = payeeCategoriesRow[1];
+          const payeesRow = payeesRows[updateRowNumber];
+          payee = payeesRow[0];
+          category = payeesRow[1];
 
           foundPayee = payee == newPayee;
-          if (foundPayee || !payee || !category) break;
+          if (foundPayee || !payee || !category)
+            break;
         }
 
         if (category != newCategory)
-          payeeCategoriesSheet
+          payeesSheet
             .getRange(updateRowNumber + 1, 2)
             .setValue(newCategory);
 
         if (!foundPayee) {
-          payeeCategoriesSheet
+          payeesSheet
             .getRange(updateRowNumber + 1, 1)
             .setValue(newPayee);
           // Sort the payees after adding a new payee
-          payeeCategoriesSheet.sort(1, true);
+          payeesSheet.sort(1, true);
         }
         SpreadsheetApp.flush();
       }
@@ -124,7 +126,7 @@ function processRecurring() {
     const today = new Date();
     const rowCount = recurringSheet.getMaxRows();
     let sortOnComplete = false;
-  
+
     do {
       sortOnComplete = false;
       for (let rowNum = 2; rowNum <= rowCount; rowNum++) {
@@ -143,22 +145,22 @@ function processRecurring() {
           status: rowValues[RECURRING_COL_STATUS - 1],
           notesPrivate: rowValues[RECURRING_COL_NOTES_PRIVATE - 1]
         }
-        
+
         if (!values.enabled || !values.frequency)
           continue;
-    
+
         if (!(values.nextDateUtc instanceof Date) || isNaN(values.nextDateUtc))
           continue;
-          
+
         if ((values.endDateUtc instanceof Date) && today > values.endDateUtc)
           continue;
-          
+
         values.nextDateUtc = new Date(values.nextDateUtc.toISOString().substring(0, 10) + "Z");
-    
+
         const updateRange = recurringSheet.getRange(rowNum, RECURRING_COL_NEXT_DATE);
         const updateNextDate = (newNextDateUtc) => { updateRange.setValue(newNextDateUtc); }
         const newNextDateUtc = insertRecurringTransactions(registerSheet, values, updateNextDate);
-        
+
         if (newNextDateUtc != null && newNextDateUtc != values.nextDateUtc)
           sortOnComplete = true;
       }
@@ -171,7 +173,7 @@ function processRecurring() {
       lock.releaseLock();
   }
 }
-  
+
 function insertRecurringTransactions(targetSheet, values, updateNextDate) {
   console.log(`${getFuncName()} - ${values?.payee}...`);
   const nowLocal = new Date();
@@ -195,6 +197,6 @@ function insertRecurringTransactions(targetSheet, values, updateNextDate) {
     if (updateNextDate)
       updateNextDate(nextDateUtc);
   }
-  
+
   return nextDateUtc;
 }

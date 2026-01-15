@@ -1,15 +1,15 @@
 /************************************************************************************************************
 Krahmer Bank Register
-Copyright 2022 Douglas Krahmer
+Copyright 2026 Douglas Krahmer
 
 This file is part of Krahmer Bank Register.
 
-Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the 
-GNU General Public License as published by the Free Software Foundation, either version 3 of the License, 
+Krahmer Bank Register is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
 or (at your option) any later version.
 
-Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+Krahmer Bank Register is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with Krahmer Bank Register.
@@ -54,16 +54,16 @@ function autoArchive() {
 
       if (!(rowDate instanceof Date) || isNaN(rowDate))
         continue;
-        
+
       if (rowDate < skipDatesBefore)
         continue; // this is a template row that should never be deleted
-        
+
       if (rowDate > maxArchiveDate)
         break; // all done
-      
+
       archiveRow(registerSheet, archiveSheet, rowNum);
     }
-    
+
     validateRegisterSheet();
   }
   finally {
