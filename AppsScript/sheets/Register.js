@@ -112,7 +112,7 @@ function updatePendingRegisterEntry(registerRowData) {
       break; // Stop searching if date is threshold or older
 
     // Match payee (case-insensitive, trimmed)
-    const rowPayee = (row[REGISTER_COL_PAYEE - 1] || '').toString().trim().toLowerCase();
+    const rowPayee = (row[REGISTER_COL_PAYEE - 1] ?? '').toString().trim().toLowerCase();
     const targetPayee = payee.trim().toLowerCase();
     if (rowPayee !== targetPayee)
       continue;

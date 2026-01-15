@@ -58,7 +58,7 @@ function testProcessEmailBillCashBack() {
 function doPost(e) {
   writeLog("INFO", "doPost called", {
     functionParam: e.parameter["function"],
-    passphraseLength: (e.parameter["passphrase"] || "").length,
+    passphraseLength: (e.parameter["passphrase"] ?? "").length,
     contentLength: e.postData?.length
   });
 
@@ -154,7 +154,7 @@ function processEmailBill(data) {
 
     // Filter for valid payees
     let validPayees = payees.filter(p => (p.emailAiRules?.trim().length ?? 0) > 0);
-    
+
     // Extract and remove special "---" payee for common instructions
     let specialPayeeIndex = validPayees.findIndex(p => p.payee === '---');
     let specialInstructions = null;
@@ -162,7 +162,7 @@ function processEmailBill(data) {
       specialInstructions = validPayees[specialPayeeIndex].emailAiRules?.trim() ?? '';
       validPayees.splice(specialPayeeIndex, 1);
     }
-    
+
     let payeeNames = validPayees.map(p => `"${p.payee}"`).join(', ');
     let payeesListText = validPayees
       .map(p => `- Payee: ${p.payee}\n  Rules: ${p.emailAiRules}`)
@@ -175,9 +175,9 @@ function processEmailBill(data) {
 For each payee below, check if the email matches ALL criteria in their rules. The payee with the BEST match wins.
 
 ${specialInstructions ? `=== COMMON INSTRUCTIONS (APPLY TO ALL PAYEES) ===
-${specialInstructions}
+${specialInstructions}` : ''}
 
-` : ''}=== PAYEE DATABASE ===
+=== PAYEE DATABASE ===
 ${payeesListText}
 
 === INSTRUCTIONS ===
@@ -363,7 +363,7 @@ ${emailText}
       dueDate: result.dueDate,
       status: "",
       appendNote: "email auto AI",
-      informationOnlyEntry: result.informationOnlyEntry || false
+      informationOnlyEntry: result.informationOnlyEntry ?? false
     });
 
     writeLog("INFO", "processEmailBill completed successfully", result);

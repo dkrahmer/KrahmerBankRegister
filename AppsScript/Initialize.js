@@ -47,7 +47,7 @@ const RECURRING_SHEET_NAME = "Recurring";
 const ARCHIVE_SHEET_NAME = "Archive";
 const PAYEES_SHEET_NAME = "Payees";
 
-const WEB_SERVICE_PASSPHRASE = PropertiesService.getScriptProperties().getProperty('WEB_SERVICE_PASSPHRASE') || '';
+const WEB_SERVICE_PASSPHRASE = PropertiesService.getScriptProperties().getProperty('WEB_SERVICE_PASSPHRASE') ?? '';
 // ------------------ End Settings ------------------
 
 const WAIT_LOCK_TIMEOUT = 10000;
