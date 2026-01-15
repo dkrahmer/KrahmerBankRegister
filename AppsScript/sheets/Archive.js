@@ -28,7 +28,7 @@ function sortArchiveSheet() {
 }
 
 function autoArchive() {
-  console.log("___...");
+  console.log(`${getFuncName()}...`);
   const lock = LockService.getScriptLock();
 
   try {
