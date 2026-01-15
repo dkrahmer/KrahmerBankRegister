@@ -153,25 +153,50 @@ function processEmailBill(data) {
     writeLog("DEBUG", "Payees loaded", {count: payees.length});
 
     // Format payees and rules for the prompt
-    let payeesListText = payees
-      .filter(p => (p.emailAiRules?.trim().length ?? 0) > 0)
+    let validPayees = payees.filter(p => (p.emailAiRules?.trim().length ?? 0) > 0);
+    let payeeNames = validPayees.map(p => `"${p.payee}"`).join(', ');
+    let payeesListText = validPayees
       .map(p => `- Payee: ${p.payee}\n  Rules: ${p.emailAiRules}`)
       .join('\n\n');
 
     // Craft the AI prompt
-    let prompt = `You are an AI assistant that processes biller emails to extract payment details.
+    let prompt = `You are an email billing processor. Your job is to match emails to payees based STRICTLY on their matching rules.
 
-Here are the known payees and their specific rules for matching and extracting data (e.g., keywords, sender emails, patterns for amounts):
+=== MATCHING PROCESS ===
+For each payee below, check if the email matches ALL criteria in their rules. The payee with the BEST match wins.
 
+=== PAYEE DATABASE ===
 ${payeesListText}
 
-Tasks:
-1. Match the email to exactly one payee based on the rules. If no clear match, set payee to "unknown".
-2. Extract the total amount due as a number (e.g., 123.45 or -50.00 for credits like cash back). Do not use the minimum amount due unless there is no other amount or it is the same amount as the amount due. If no amount found, set to 0.
-3. Decide the mode: "replace" if the email indicates a regular bill or invoice, or "add" if it is a cash back reward (make the number negative for cash back reward). Base this on the email content and any rules.
-4. Extract the due date - it may be called the minimum payment due date.
-5. CRITICAL: Check the matched payee's rules above. If the rules contain ANY of these phrases: "Enable the information-only flag", "information-only", "info-only flag", then set informationOnlyEntry to TRUE. Otherwise, set it to FALSE. This is a rule-based setting, not an inference from the email content.
-6. Provide a brief reason for your decisions.
+=== INSTRUCTIONS ===
+1. PAYEE MATCHING (MOST IMPORTANT):
+   - Read each payee's Rules carefully
+   - Check if the email matches the rules (sender email, keywords, etc.)
+   - Select the payee whose rules BEST match this email
+   - If no payee rules match well, return "unknown"
+   - NEVER guess or infer - only match based on stated rules
+
+2. AMOUNT EXTRACTION:
+   - Extract the total amount due as a number (e.g., 123.45)
+   - For cash back/credits, use negative numbers (e.g., -50.00)
+   - Do NOT use minimum payment unless it equals the total amount
+   - If no amount found, use 0
+
+3. MODE SELECTION:
+   - Use "replace" for regular bills/invoices
+   - Use "add" for cash back/rewards/credits
+
+4. DUE DATE:
+   - Extract the payment due date (may be called "minimum payment due date")
+   - Format as MM/DD/YYYY
+
+5. INFORMATION-ONLY FLAG:
+   - Check the MATCHED payee's rules
+   - Set to true ONLY if rules contain: "Enable the information-only flag", "information-only", or "info-only flag"
+   - Otherwise false
+
+6. REASON:
+   - Briefly explain which rules matched (e.g., "Matched sender email notices@example.com per payee rules")
 
 Respond ONLY with a valid JSON object, no other text or explanations:
 {
@@ -194,10 +219,14 @@ ${emailText}
       throw new Error('Gemini API key not set in script properties.');
     }
 
-    // Gemini API endpoint (using flash model for speed and cost-free tier)
-    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey;
+    // Gemini API endpoint (using exp model for better reasoning)
+    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
 
-    // Payload for Gemini
+    // Build enum list of valid payee names for JSON schema
+    let payeeEnum = validPayees.map(p => p.payee);
+    payeeEnum.push('unknown'); // Add 'unknown' as valid option
+
+    // Payload for Gemini with strict JSON schema
     let requestPayload = {
       contents: [{
         parts: [{
@@ -205,8 +234,40 @@ ${emailText}
         }]
       }],
       generationConfig: {
-        temperature: 0.2,
-        responseMimeType: 'application/json' // Supported in v1beta
+        temperature: 0,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            payee: {
+              type: 'string',
+              enum: payeeEnum,
+              description: 'Must be one of the predefined payee names or "unknown"'
+            },
+            amount: {
+              type: 'number',
+              description: 'The amount due or credited'
+            },
+            mode: {
+              type: 'string',
+              enum: ['replace', 'add'],
+              description: 'Whether to replace or add to existing amount'
+            },
+            dueDate: {
+              type: 'string',
+              description: 'Due date in MM/DD/YYYY format'
+            },
+            informationOnlyEntry: {
+              type: 'boolean',
+              description: 'True if this is an information-only entry'
+            },
+            reason: {
+              type: 'string',
+              description: 'Brief explanation of decisions'
+            }
+          },
+          required: ['payee', 'amount', 'mode', 'dueDate', 'informationOnlyEntry', 'reason']
+        }
       }
     };
 
@@ -256,6 +317,18 @@ ${emailText}
     if (!result.payee || typeof result.amount !== 'number' || !['replace', 'add'].includes(result.mode)) {
       writeLog("ERROR", "Invalid AI result format", result);
       throw new Error('Invalid response from AI.');
+    }
+
+    // Validate payee name exists in our list (case-insensitive)
+    if (result.payee !== 'unknown') {
+      let validPayeeNames = validPayees.map(p => p.payee.toLowerCase());
+      if (!validPayeeNames.includes(result.payee.toLowerCase())) {
+        writeLog("ERROR", "AI returned invalid payee name", {
+          returned: result.payee,
+          validNames: validPayees.map(p => p.payee)
+        });
+        throw new Error(`AI returned invalid payee name: "${result.payee}". Must be one of the predefined payees.`);
+      }
     }
 
     if (result.payee === 'unknown' || result.amount === 0) {
