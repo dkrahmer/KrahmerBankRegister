@@ -77,6 +77,28 @@ function addRegisterRows(rowsToAdd, rowToAddBefore) {
   templateRange.copyTo(targetRange, SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false);
 }
 
+// Adds a new entry to the register sheet with the provided values.
+// @param {Object} entry - The entry object with properties: date, payee, category, debit, credit, status, notes
+// @param {boolean} [autoSort=true] - Whether to sort the register after adding the entry.
+// @returns {number} The row number of the inserted entry.
+function addRegisterEntry(entry, autoSort = true) {
+  const sheet = SpreadsheetApp.openById(SCRIPT_PROP.getProperty("key"));
+  const registerSheet = sheet.getSheetByName(REGISTER_SHEET_NAME);
+  const headerRows = registerSheet.getFrozenRows();
+  SpreadsheetApp.flush();
+  const newRowNumber = headerRows + REGISTER_EMPTY_ROWS + 1;
+  addRegisterRows(1, newRowNumber);
+  SpreadsheetApp.flush();
+    // Set values in the new row
+  registerSheet.getRange(newRowNumber, REGISTER_COL_NOTES, 1, 1).setValues([[entry.notes ?? ""]]);
+  registerSheet.getRange(newRowNumber, REGISTER_COL_DATE, 1, REGISTER_COL_STATUS).setValues([[entry.date, entry.source ?? "auto", entry.payee, entry.category, entry.debit, entry.credit, entry.status]]);
+  SpreadsheetApp.flush();
+  if (autoSort) {
+    sortRegisterSheet();
+  }
+  return newRowNumber;
+}
+
 function updatePendingRegisterEntry(registerRowData) {
   console.log(`${getFuncName()}...`);
   let { maxDate, payee, amount, mode, dueDate, status, appendNote, informationOnlyEntry } = registerRowData;
@@ -117,8 +139,8 @@ function updatePendingRegisterEntry(registerRowData) {
     if (rowPayee !== targetPayee)
       continue;
 
-    // If dueDate provided and not 'subtract' mode, check within the tolerance window
-    if (targetDueDate && mode !== 'subtract' && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
+    // If dueDate provided and not 'amend-debit' or 'amend-credit' mode, check within the tolerance window
+    if (targetDueDate && mode !== 'amend-debit' && mode !== 'amend-credit' && Math.abs(rowDate.getTime() - targetDueDate.getTime()) > dueDateToleranceMs)
       continue;
 
     // Track the one with earliest date
@@ -138,18 +160,24 @@ function updatePendingRegisterEntry(registerRowData) {
   // Update amount if provided
   if (amount !== undefined) {
     let withdrawal = parseFloat(row[REGISTER_COL_WITHDRAWAL - 1]) ?? 0;
+    let deposit = parseFloat(row[REGISTER_COL_DEPOSIT - 1]) ?? 0;
 
-    mode = mode ?? 'replace'; // Default to 'replace' if not provided
-
-    if (mode === 'replace') {
+    if (mode === 'replace-debit') {
       registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setValue(amount);
     }
-    else if (mode === 'subtract') {
-      // Set as a formula so it's viewable/editable (always subtract positive amount)
-      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setFormula(`=${withdrawal}-${Math.abs(amount)}`);
+    else if (mode === 'replace-credit') {
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DEPOSIT, 1, 1).setValue(amount);
+    }
+    else if (mode === 'amend-debit') {
+      // Set as a formula so it's viewable/editable (add to debit column)
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_WITHDRAWAL, 1, 1).setFormula(`=${withdrawal}${amount >= 0 ? '+' : ''}${amount}`);
+    }
+    else if (mode === 'amend-credit') {
+      // Set as a formula so it's viewable/editable (add to credit column)
+      registerSheet.getRange(candidateIndex + 1, REGISTER_COL_DEPOSIT, 1, 1).setFormula(`=${deposit}${amount >= 0 ? '+' : ''}${amount}`);
     }
     else {
-      throw new Error('Invalid mode: must be "replace" or "subtract"');
+      throw new Error('Invalid mode: must be "replace-debit", "replace-credit", "amend-debit", or "amend-credit"');
     }
 
     // If informationOnlyEntry flag is set, also set deposit to the same amount

@@ -178,25 +178,22 @@ function insertRecurringTransactions(targetSheet, values, updateNextDate) {
   console.log(`${getFuncName()} - ${values?.payee}...`);
   const nowLocal = new Date();
   const endDateUtc = new Date(Date.UTC(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate() + values.daysAhead)); // cast local date as UTC
-  const headerRows = targetSheet.getFrozenRows();
-
   let nextDateUtc = values.nextDateUtc;
-  while (nextDateUtc instanceof Date && !isNaN(nextDateUtc) && nextDateUtc <= endDateUtc)
-  {
-    // Add a transaction
-    SpreadsheetApp.flush();
-    const newRowNumber = headerRows + REGISTER_EMPTY_ROWS + 1;
-    addRegisterRows(1, newRowNumber);
-    SpreadsheetApp.flush();
-
-    targetSheet.getRange(newRowNumber, REGISTER_COL_NOTES, 1, 1).setValues([[values.notes]]);
-    targetSheet.getRange(newRowNumber, REGISTER_COL_DATE, 1, REGISTER_COL_STATUS).setValues([[nextDateUtc, "auto", values.payee, values.category, values.debit, values.credit, values.status]]);
-
+  while (nextDateUtc instanceof Date && !isNaN(nextDateUtc) && nextDateUtc <= endDateUtc) {
+    // Use addRegisterEntry to add a transaction
+    addRegisterEntry({
+      date: nextDateUtc,
+      payee: values.payee,
+      category: values.category,
+      debit: values.debit,
+      credit: values.credit,
+      status: values.status,
+      notes: values.notes,
+      source: "auto"
+    }, false);
     nextDateUtc = getNextDateUtc(nextDateUtc, values.frequency);
-
     if (updateNextDate)
       updateNextDate(nextDateUtc);
   }
-
   return nextDateUtc;
 }

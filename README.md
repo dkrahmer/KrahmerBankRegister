@@ -9,3 +9,4 @@ You can create your own account register by making a copy of the [Krahmer Bank R
 Use [clasp](https://github.com/google/clasp) to sync code between local and Google Apps Scripts (set target scriptId in .clasp.json)
   - clasp push
   - clasp pull
+  - clasp push && clasp deploy -i <deployment_id>

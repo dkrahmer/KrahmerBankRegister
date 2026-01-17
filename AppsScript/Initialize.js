@@ -50,6 +50,7 @@ const PAYEES_SHEET_NAME = "Payees";
 const WEB_SERVICE_PASSPHRASE = PropertiesService.getScriptProperties().getProperty('WEB_SERVICE_PASSPHRASE') ?? '';
 // ------------------ End Settings ------------------
 
+const EMAIL_AUTO_AI_NOTE = 'email auto AI';
 const WAIT_LOCK_TIMEOUT = 10000;
 const REGISTER_FOOTER_ROW_COUNT = 2;
 const ARCHIVE_FOOTER_ROW_COUNT = 1;
@@ -86,6 +87,7 @@ let PAYEES_COL_COUNT = 0;
 const PAYEES_COL_PAYEE = ++PAYEES_COL_COUNT;
 const PAYEES_COL_CATEGORY = ++PAYEES_COL_COUNT;
 const PAYEES_COL_EMAIL_AI_RULES = ++PAYEES_COL_COUNT;
+const PAYEES_COL_EMAIL_AI_MODES = ++PAYEES_COL_COUNT;
 
 function initialize() {
   console.log(`${getFuncName()}...`);
