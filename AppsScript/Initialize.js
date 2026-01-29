@@ -39,6 +39,8 @@ Release notes:
 *************************************************************************************/
 
 // ------------------ Begin Settings ------------------
+const GEMINI_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const REGISTER_EMPTY_ROWS = 3;
 const ESTIMATE_STATUS = "E"; // must match sheet data validation for the status columns
 
@@ -50,6 +52,7 @@ const PAYEES_SHEET_NAME = "Payees";
 const WEB_SERVICE_PASSPHRASE = PropertiesService.getScriptProperties().getProperty('WEB_SERVICE_PASSPHRASE') ?? '';
 // ------------------ End Settings ------------------
 
+const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY") ?? "";
 const EMAIL_AUTO_AI_NOTE = 'email auto AI';
 const WAIT_LOCK_TIMEOUT = 10000;
 const REGISTER_FOOTER_ROW_COUNT = 2;

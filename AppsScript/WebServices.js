@@ -195,14 +195,8 @@ function processEmailBill(data) {
        ${emailText}
     `;
 
-    // Get API key from script properties
-    let apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error('Gemini API key not set in script properties.');
-    }
-
     // Gemini API endpoint (using exp model for better reasoning)
-    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey;
+    let url = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
 
     // Build enum list of valid payee names for JSON schema
     let payeeEnum = validPayees.map(p => p.payee);
